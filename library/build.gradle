@@ -12,7 +12,6 @@ android {
         versionName "1.2.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
     buildTypes {
         release {
@@ -36,6 +35,9 @@ dependencies {
     implementation 'com.waynejo:androidndkgif:0.3.3'
     testImplementation 'junit:junit:4.12'
 }
+
 repositories {
     mavenCentral()
+    google()
+    maven { url "https://raw.githubusercontent.com/waynejf/ndk-gif-android/maven-repo/" }
 }
