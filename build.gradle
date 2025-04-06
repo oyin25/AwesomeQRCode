@@ -4,8 +4,10 @@ buildscript {
     repositories {
         google()
         jcenter()
-        maven { url "http://dl.bintray.com/waynejo/maven" }
-    }
+        maven {
+    url 'https://dl.bintray.com/waynejo/maven'
+    allowInsecureProtocol true
+}
     dependencies {
         classpath 'com.android.tools.build:gradle:3.1.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
