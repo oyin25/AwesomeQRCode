@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/github/license/SumiMakito/AwesomeQRCode.svg)](https://github.com/SumiMakito/AwesomeQRCode/blob/master/LICENSE)
 ![](https://img.shields.io/badge/made%20with-cappuccino-orange.svg)
 
-Awesome QR code - An awesome QR code generator for Android.
+Awesome QR Code Lib fix - An awesome QR code generator for Android.
 
 ## Yay! Available on Google Play!
 
