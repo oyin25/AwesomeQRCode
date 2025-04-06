@@ -12,6 +12,7 @@ android {
         versionName "1.2.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
     }
     buildTypes {
         release {
@@ -35,9 +36,6 @@ dependencies {
     implementation 'io.github.waynejo:androidndkgif:0.3.3'
     testImplementation 'junit:junit:4.12'
 }
-
 repositories {
-    maven { url "https://repo1.maven.org/maven2/" } // Direct Maven Central
-    google()
-    mavenCentral() // Fallback, safe to keep
+    mavenCentral()
 }
