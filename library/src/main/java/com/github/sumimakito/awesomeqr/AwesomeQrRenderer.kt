@@ -420,12 +420,12 @@ class AwesomeQrRenderer {
                 // but WHO DARES GIMME AN EMPTY BITMAP?
                 return -0x1000000
             } else {
-                red = Math.max(0, Math.min(0xFF, red / c))
-                green = Math.max(0, Math.min(0xFF, green / c))
-                blue = Math.max(0, Math.min(0xFF, blue / c))
+                val finalRed = Math.max(0, Math.min(0xFF, red / c))
+                val finalGreen = Math.max(0, Math.min(0xFF, green / c))
+                val finalBlue = Math.max(0, Math.min(0xFF, blue / c))
 
                 val hsv = FloatArray(3)
-                Color.RGBToHSV(red, green, blue, hsv)
+                Color.RGBToHSV(finalRed, finalGreen, finalBlue, hsv)
                 hsv[2] = Math.max(hsv[2], 0.7f)
 
                 return 0xFF shl 24 or Color.HSVToColor(hsv) // (0xFF << 24) | (red << 16) | (green << 8) | blue;
