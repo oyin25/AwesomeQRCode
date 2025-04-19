@@ -425,7 +425,7 @@ class AwesomeQrRenderer {
                 val finalBlue = Math.max(0, Math.min(0xFF, blue / c))
 
                 val hsv = FloatArray(3)
-                Color.RGBToHSV(finalRed, finalGreen, finalBlue, hsv)
+                Color.RGBToHSV(finalRed.toInt(), finalGreen.toInt(), finalBlue.toInt(), hsv)
                 hsv[2] = Math.max(hsv[2], 0.7f)
 
                 return 0xFF shl 24 or Color.HSVToColor(hsv) // (0xFF << 24) | (red << 16) | (green << 8) | blue;
