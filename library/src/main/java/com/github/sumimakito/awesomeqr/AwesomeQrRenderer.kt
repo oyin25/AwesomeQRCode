@@ -284,6 +284,172 @@ class AwesomeQrRenderer {
             return renderedResultBitmap
         }
 
-        // Other helper functions remain unchanged...
+                private fun getByteMatrix(contents: String, errorCorrectionLevel: ErrorCorrectionLevel): ByteMatrix? {
+            try {
+                val qrCode = getProtoQrCode(contents, errorCorrectionLevel)
+                val agnCenter = qrCode.version.alignmentPatternCenters
+                val byteMatrix = qrCode.matrix
+                val matSize = byteMatrix.width
+                for (row in 0 until matSize) {
+                    for (col in 0 until matSize) {
+                        if (isTypeAGN(col, row, agnCenter, true)) {
+                            if (byteMatrix.get(col, row) != BYTE_EPT) {
+                                byteMatrix.set(col, row, BYTE_AGN)
+                            } else {
+                                byteMatrix.set(col, row, BYTE_PTC)
+                            }
+                        } else if (isTypePOS(col, row, matSize, true)) {
+                            if (byteMatrix.get(col, row) != BYTE_EPT) {
+                                byteMatrix.set(col, row, BYTE_POS)
+                            } else {
+                                byteMatrix.set(col, row, BYTE_PTC)
+                            }
+                        } else if (isTypeTMG(col, row, matSize)) {
+                            if (byteMatrix.get(col, row) != BYTE_EPT) {
+                                byteMatrix.set(col, row, BYTE_TMG)
+                            } else {
+                                byteMatrix.set(col, row, BYTE_PTC)
+                            }
+                        }
+
+                        if (isTypePOS(col, row, matSize, false)) {
+                            if (byteMatrix.get(col, row) == BYTE_EPT) {
+                                byteMatrix.set(col, row, BYTE_PTC)
+                            }
+                        }
+                    }
+                }
+                return byteMatrix
+            } catch (e: WriterException) {
+                e.printStackTrace()
+            }
+
+            return null
+        }
+
+        /**
+         * @param contents             Contents to encode.
+         * @param errorCorrectionLevel ErrorCorrectionLevel
+         * @return QR code object.
+         * @throws WriterException Refer to the messages below.
+         */
+        @Throws(WriterException::class)
+        private fun getProtoQrCode(contents: String, errorCorrectionLevel: ErrorCorrectionLevel): QRCode {
+            if (contents.isEmpty()) {
+                throw IllegalArgumentException("Found empty content.")
+            }
+            val hintMap = Hashtable<EncodeHintType, Any>()
+            hintMap[EncodeHintType.CHARACTER_SET] = "UTF-8"
+            hintMap[EncodeHintType.ERROR_CORRECTION] = errorCorrectionLevel
+            return Encoder.encode(contents, errorCorrectionLevel, hintMap)
+        }
+
+        private fun isTypeAGN(x: Int, y: Int, agnCenter: IntArray, edgeOnly: Boolean): Boolean {
+            if (agnCenter.isEmpty()) return false
+            val edgeCenter = agnCenter[agnCenter.size - 1]
+            for (agnY in agnCenter) {
+                for (agnX in agnCenter) {
+                    if (edgeOnly && agnX != 6 && agnY != 6 && agnX != edgeCenter && agnY != edgeCenter)
+                        continue
+                    if (agnX == 6 && agnY == 6 || agnX == 6 && agnY == edgeCenter || agnY == 6 && agnX == edgeCenter)
+                        continue
+                    if (x >= agnX - 2 && x <= agnX + 2 && y >= agnY - 2 && y <= agnY + 2)
+                        return true
+                }
+            }
+            return false
+        }
+
+        private fun isTypePOS(x: Int, y: Int, size: Int, inner: Boolean): Boolean {
+            return if (inner) {
+                x < 7 && (y < 7 || y >= size - 7) || x >= size - 7 && y < 7
+            } else {
+                x <= 7 && (y <= 7 || y >= size - 8) || x >= size - 8 && y <= 7
+            }
+        }
+
+        private fun isTypeTMG(x: Int, y: Int, size: Int): Boolean {
+            return y == 6 && x >= 8 && x < size - 8 || x == 6 && y >= 8 && y < size - 8
+        }
+
+        private fun scaleBitmap(src: Bitmap, dst: Bitmap) {
+            val cPaint = Paint()
+            cPaint.isAntiAlias = true
+            cPaint.isDither = true
+            cPaint.isFilterBitmap = true
+
+            val ratioX = dst.width / src.width.toFloat()
+            val ratioY = dst.height / src.height.toFloat()
+            val middleX = dst.width * 0.5f
+            val middleY = dst.height * 0.5f
+
+            val scaleMatrix = Matrix()
+            scaleMatrix.setScale(ratioX, ratioY, middleX, middleY)
+            val canvas = Canvas(dst)
+            canvas.matrix = scaleMatrix
+            canvas.drawBitmap(src, middleX - src.width / 2,
+                    middleY - src.height / 2, cPaint)
+        }
+
+        private fun getDominantColor(bitmap: Bitmap): Int {
+            val newBitmap = Bitmap.createScaledBitmap(bitmap, 8, 8, true)
+            var red = 0
+            var green = 0
+            var blue = 0
+            var c = 0
+            var r: Int
+            var g: Int
+            var b: Int
+            for (y in 0 until newBitmap.height) {
+                for (x in 0 until newBitmap.height) {
+                    val color = newBitmap.getPixel(x, y)
+                    r = color shr 16 and 0xFF
+                    g = color shr 8 and 0xFF
+                    b = color and 0xFF
+                    if (r > 200 || g > 200 || b > 200) continue
+                    red += r
+                    green += g
+                    blue += b
+                    c++
+                }
+            }
+            newBitmap.recycle()
+            if (c == 0) {
+                // got a bitmap with no pixels in it
+                // avoid the "divide by zero" error
+                // but WHO DARES GIMME AN EMPTY BITMAP?
+                return -0x1000000
+            } else {
+                red = Math.max(0, Math.min(0xFF, red / c))
+                green = Math.max(0, Math.min(0xFF, green / c))
+                blue = Math.max(0, Math.min(0xFF, blue / c))
+
+                val hsv = FloatArray(3)
+                Color.RGBToHSV(red, green, blue, hsv)
+                hsv[2] = Math.max(hsv[2], 0.7f)
+
+                return 0xFF shl 24 or Color.HSVToColor(hsv) // (0xFF << 24) | (red << 16) | (green << 8) | blue;
+            }
+        }
+
+        // returns [finalBoundingRect, newClippingRect]
+        private fun scaleImageBoundingRectByClippingRect(bitmap: Bitmap, size: Int, clippingRect: Rect?): Array<Rect> {
+            if (clippingRect == null) return scaleImageBoundingRectByClippingRect(bitmap, size, Rect(0, 0, bitmap.width, bitmap.height))
+            if (clippingRect.width() != clippingRect.height() || clippingRect.width() <= size) {
+                return arrayOf(Rect(0, 0, bitmap.width, bitmap.height), clippingRect)
+            }
+            val clippingSize = clippingRect.width().toFloat()
+            val scalingRatio = size / clippingSize
+            return arrayOf(
+                    RectUtils.round(RectF(
+                            0f, 0f,
+                            bitmap.width * scalingRatio, bitmap.height * scalingRatio)
+                    ),
+                    RectUtils.round(RectF(
+                            clippingRect.left * scalingRatio, clippingRect.top * scalingRatio,
+                            clippingRect.right * scalingRatio, clippingRect.bottom * scalingRatio)
+                    )
+            )
+        }
     }
 }
